@@ -1243,5 +1243,19 @@ const firstColorBtn = document.querySelector('#drop2-color-row .color-btn');
 if (firstColorBtn) selectDrop2Color(0, firstColorBtn);
 
 </script>
+
+<script>
+(function(){
+  let etag = null;
+  setInterval(async () => {
+    try {
+      const r = await fetch(location.href, { method: 'HEAD', cache: 'no-store' });
+      const t = r.headers.get('last-modified') || r.headers.get('etag');
+      if (etag && t !== etag) location.reload();
+      etag = t;
+    } catch(e) {}
+  }, 800);
+})();
+</script>
 </body>
 </html>
