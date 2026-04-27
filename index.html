@@ -681,6 +681,31 @@ nav {
   padding-top: 12px;
   margin-top: 8px;
 }
+.venmo-note {
+  background: rgba(201,223,240,0.3);
+  border: 1px solid rgba(122,174,207,0.4);
+  border-radius: 2px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.venmo-v {
+  width: 38px;
+  height: 38px;
+  background: #3D95CE;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.venmo-text { font-size: 13px; color: var(--ink-mid); line-height: 1.6; }
+.venmo-text strong { color: var(--ink); font-weight: 500; }
 .place-order-btn {
   width: 100%;
   padding: 15px;
@@ -911,22 +936,22 @@ footer {
       <div class="field"><label>Last name</label><input id="lname" type="text" autocomplete="family-name" placeholder="Last name" /></div>
     </div>
     <div class="field-row full">
-      <div class="field"><label>Phone</label><input id="phone" type="tel" autocomplete="tel" placeholder="Phone number" /></div>
+      <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@email.com" /></div>
     </div>
     <div class="field-row full">
-      <div class="field"><label>Delivery address</label><input id="address" type="text" autocomplete="street-address" placeholder="Street address" /></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>City</label><input id="city" type="text" autocomplete="address-level2" placeholder="City" /></div>
-      <div class="field"><label>State</label><input id="state" type="text" autocomplete="address-level1" placeholder="State" /></div>
+      <div class="field"><label>Phone (optional)</label><input id="phone" type="tel" autocomplete="tel" placeholder="Phone number" /></div>
     </div>
     <div class="field-row full">
-      <div class="field"><label>Zip code</label><input id="zip" type="text" autocomplete="postal-code" placeholder="Zip code" /></div>
+      <div class="field"><label>Delivery address</label><input id="address" type="text" autocomplete="street-address" placeholder="123 Main St, Omaha NE 68102" /></div>
     </div>
     <div class="field-row full">
       <div class="field"><label>Notes (optional)</label><input id="notes" type="text" placeholder="Any special requests" /></div>
     </div>
-    <button class="place-order-btn" id="place-btn" onclick="submitOrder()" style="margin-top:28px;">Place order</button>
+    <div class="venmo-note">
+      <div class="venmo-v">V</div>
+      <div class="venmo-text">After submitting, send payment via Venmo to <strong>@coopswanson</strong>. Please include your name in the note.</div>
+    </div>
+    <button class="place-order-btn" id="place-btn" onclick="submitOrder()">Place order &amp; pay via Venmo</button>
     <div style="text-align:center; margin-top:14px;">
       <span style="font-size:12px; color:var(--ink-soft); cursor:pointer; text-decoration:underline;" onclick="showShop()">&#8592; back to shop</span>
     </div>
@@ -937,8 +962,9 @@ footer {
 <div id="success-view" class="success-section">
   <div class="success-inner">
     <div class="success-cross">&#10013;</div>
-    <div class="success-title">Order confirmed!</div>
-    <div class="success-sub" id="success-sub">Send payment via Venmo <strong>@coopswanson</strong> and Cooper will be in touch to confirm. God bless!</div>
+    <div class="success-title">Order received!</div>
+    <div class="success-sub">Thanks — Cooper will be in touch to confirm your order and delivery. Don't forget to complete your payment on Venmo.</div>
+    <button class="place-order-btn" id="success-total" onclick="openVenmo()" style="margin-top:1rem; background:#3D95CE; border-color:#3D95CE; color:#fff; font-family:'Jost', sans-serif; font-size:15px; font-weight:400; letter-spacing:0.04em; text-transform:none;"></button>
   </div>
 </div>
 
@@ -1157,39 +1183,46 @@ function showShop() {
 async function submitOrder() {
   const fname = document.getElementById('fname').value.trim();
   const lname = document.getElementById('lname').value.trim();
+  const email = document.getElementById('email').value.trim();
   const phone = document.getElementById('phone').value.trim();
   const address = document.getElementById('address').value.trim();
-  const city = document.getElementById('city').value.trim();
-  const state = document.getElementById('state').value.trim();
-  const zip = document.getElementById('zip').value.trim();
   const notes = document.getElementById('notes').value.trim();
-  if (!fname || !phone) { alert('Please fill in your name and phone number.'); return; }
+  if (!fname || !email || !address) { alert('Please fill in your name, email, and delivery address.'); return; }
 
   const total = cart.reduce((s, i) => s + i.price, 0);
   const orderLines = cart.map(i => i.isDrop2
     ? `${i.name} — ${i.color} / Size ${i.size} — $${i.price}`
     : `${i.name} — Size ${i.size} — $${i.price}`
-  ).join(', ');
-  const fullAddress = [address, city, state, zip].filter(Boolean).join(', ');
+  ).join('\n');
 
   const btn = document.getElementById('place-btn');
-  btn.textContent = 'Placing order...';
+  btn.textContent = 'Submitting...';
   btn.disabled = true;
 
   try {
     await fetch('https://formspree.io/f/mwvangpo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ name: fname + ' ' + lname, phone, address: fullAddress || 'not provided', notes: notes || 'none', order: orderLines, total: '$' + total, _subject: 'New order — $' + total })
+      body: JSON.stringify({ name: fname + ' ' + lname, email, phone: phone || 'not provided', address, notes: notes || 'none', order: orderLines, total: '$' + total, _subject: 'New order from ' + fname + ' ' + lname + ' — $' + total })
     });
-    document.getElementById('checkout-view').classList.remove('visible');
-    document.getElementById('success-view').classList.add('visible');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } catch (err) {
-    alert('Something went wrong. Please try again.');
-    btn.textContent = 'Place order';
-    btn.disabled = false;
-  }
+  } catch(e) { console.log('Formspree error', e); }
+
+  document.getElementById('checkout-view').classList.remove('visible');
+  document.getElementById('success-total').textContent = 'Send $' + total + ' to Cooper on Venmo';
+  document.getElementById('success-view').classList.add('visible');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const note = encodeURIComponent('Order from ' + fname + ' ' + lname);
+  window._venmoUrl = 'venmo://paycharge?txn=pay&recipients=coopswanson&amount=' + total + '&note=' + note;
+  window._venmoWeb = 'https://venmo.com/coopswanson?txn=pay&amount=' + total + '&note=' + note;
+}
+
+function openVenmo() {
+  const a = document.createElement('a');
+  a.href = window._venmoUrl;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => { window.open(window._venmoWeb, '_blank'); }, 1500);
 }
 
 function navHome() {
