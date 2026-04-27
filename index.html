@@ -903,8 +903,7 @@ footer {
 
 <!-- CHECKOUT -->
 <div id="checkout-view" class="checkout-section">
-  <!-- Step 1: Info -->
-  <div class="checkout-box" id="step-info">
+  <div class="checkout-box">
     <div class="checkout-title">Your order</div>
     <div class="order-summary" id="order-summary"></div>
     <div class="field-row">
@@ -927,19 +926,9 @@ footer {
     <div class="field-row full">
       <div class="field"><label>Notes (optional)</label><input id="notes" type="text" placeholder="Any special requests" /></div>
     </div>
-    <button class="place-order-btn" id="continue-btn" onclick="goToPayment()" style="margin-top:28px;">Continue to payment</button>
+    <button class="place-order-btn" id="place-btn" onclick="submitOrder()" style="margin-top:28px;">Place order</button>
     <div style="text-align:center; margin-top:14px;">
       <span style="font-size:12px; color:var(--ink-soft); cursor:pointer; text-decoration:underline;" onclick="showShop()">&#8592; back to shop</span>
-    </div>
-  </div>
-  <!-- Step 2: Payment -->
-  <div class="checkout-box" id="step-payment" style="display:none;">
-    <div class="checkout-title">Payment</div>
-    <div id="payment-element" style="margin-bottom:20px;"></div>
-    <div id="card-errors" style="color:#c0392b; font-size:12px; margin-bottom:12px;"></div>
-    <button class="place-order-btn" id="pay-btn" onclick="submitOrder()">Pay now</button>
-    <div style="text-align:center; margin-top:14px;">
-      <span style="font-size:12px; color:var(--ink-soft); cursor:pointer; text-decoration:underline;" onclick="backToInfo()">&#8592; back</span>
     </div>
   </div>
 </div>
@@ -949,7 +938,7 @@ footer {
   <div class="success-inner">
     <div class="success-cross">&#10013;</div>
     <div class="success-title">Order confirmed!</div>
-    <div class="success-sub" id="success-sub">Payment received. Cooper will be in touch to confirm pickup. God bless!</div>
+    <div class="success-sub" id="success-sub">Send payment via Venmo <strong>@coopswanson</strong> and Cooper will be in touch to confirm. God bless!</div>
   </div>
 </div>
 
@@ -970,7 +959,6 @@ footer {
   </div>
 </div>
 
-<script src="https://js.stripe.com/v3/"></script>
 <script>
 const products = [
   { id: 1, name: "Valued by God", verse: "Matthew 6:26", price: 30, frontImg: "images/matthew-front.png", backImg: "images/matthew-back.png" },
@@ -1166,11 +1154,7 @@ function showShop() {
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
-const stripeClient = Stripe('pk_test_51TQ8tLJOifrRjYJcPY1VFx50NDRCZqvlczsG883CeGd3wkC04kx3QMKWyID8uEV3I56WibLDS6qObyvvG7FdooAX00Uj9GD8QY');
-let paymentElements = null;
-let orderData = null;
-
-async function goToPayment() {
+async function submitOrder() {
   const fname = document.getElementById('fname').value.trim();
   const lname = document.getElementById('lname').value.trim();
   const phone = document.getElementById('phone').value.trim();
@@ -1179,7 +1163,7 @@ async function goToPayment() {
   const state = document.getElementById('state').value.trim();
   const zip = document.getElementById('zip').value.trim();
   const notes = document.getElementById('notes').value.trim();
-  if (!fname || !phone || !address) { alert('Please fill in your name, phone, and delivery address first.'); return; }
+  if (!fname || !phone) { alert('Please fill in your name and phone number.'); return; }
 
   const total = cart.reduce((s, i) => s + i.price, 0);
   const orderLines = cart.map(i => i.isDrop2
@@ -1187,75 +1171,23 @@ async function goToPayment() {
     : `${i.name} — Size ${i.size} — $${i.price}`
   ).join(', ');
   const fullAddress = [address, city, state, zip].filter(Boolean).join(', ');
-  orderData = { fname, lname, phone, address, city, state, zip, notes, total, orderLines, fullAddress };
 
-  const btn = document.getElementById('continue-btn');
-  btn.textContent = 'Loading...';
+  const btn = document.getElementById('place-btn');
+  btn.textContent = 'Placing order...';
   btn.disabled = true;
 
   try {
-    const res = await fetch('/api/checkout', {
+    await fetch('https://formspree.io/f/mwvangpo', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: total, name: fname + ' ' + lname, phone, notes, order: orderLines, address: fullAddress }),
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ name: fname + ' ' + lname, phone, address: fullAddress || 'not provided', notes: notes || 'none', order: orderLines, total: '$' + total, _subject: 'New order — $' + total })
     });
-    const { clientSecret, error: serverError } = await res.json();
-    if (serverError) throw new Error(serverError);
-
-    paymentElements = stripeClient.elements({
-      clientSecret,
-      appearance: { theme: 'stripe', variables: { fontFamily: "'Jost', sans-serif", colorText: '#1a2636', colorPrimary: '#1a2636' } },
-    });
-    paymentElements.create('payment').mount('#payment-element');
-
-    document.getElementById('step-info').style.display = 'none';
-    document.getElementById('step-payment').style.display = 'block';
+    document.getElementById('checkout-view').classList.remove('visible');
+    document.getElementById('success-view').classList.add('visible');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (err) {
-    alert('Error: ' + err.message);
-    btn.textContent = 'Continue to payment';
-    btn.disabled = false;
-  }
-}
-
-function backToInfo() {
-  document.getElementById('step-payment').style.display = 'none';
-  document.getElementById('step-info').style.display = 'block';
-  const btn = document.getElementById('continue-btn');
-  btn.textContent = 'Continue to payment';
-  btn.disabled = false;
-}
-
-async function submitOrder() {
-  const { fname, lname, phone, address, city, state, zip, notes, total, orderLines, fullAddress } = orderData;
-  const btn = document.getElementById('pay-btn');
-  btn.textContent = 'Processing...';
-  btn.disabled = true;
-
-  try {
-    const { error, paymentIntent } = await stripeClient.confirmPayment({
-      elements: paymentElements,
-      confirmParams: { return_url: window.location.href },
-      redirect: 'if_required',
-    });
-
-    if (error) {
-      document.getElementById('card-errors').textContent = error.message;
-      btn.textContent = 'Pay now';
-      btn.disabled = false;
-    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-      await fetch('https://formspree.io/f/mwvangpo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ name: fname + ' ' + lname, phone, address: fullAddress, notes: notes || 'none', order: orderLines, total: '$' + total, _subject: 'New order — $' + total })
-      });
-      document.getElementById('checkout-view').classList.remove('visible');
-      document.getElementById('success-view').classList.add('visible');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  } catch (err) {
-    alert('Payment error: ' + err.message);
-    btn.textContent = 'Pay now';
+    alert('Something went wrong. Please try again.');
+    btn.textContent = 'Place order';
     btn.disabled = false;
   }
 }
