@@ -390,20 +390,18 @@ nav {
 .add-btn-large {
   width: 100%;
   padding: 15px;
-  background: var(--ink);
-  color: white;
-  border: none;
+  background: rgba(26,38,54,0.18);
+  color: var(--ink-soft);
+  border: 1px solid rgba(26,38,54,0.15);
   font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   font-family: 'Jost', sans-serif;
-  cursor: pointer;
+  cursor: default;
   border-radius: 2px;
-  transition: opacity 0.15s;
   margin-top: 4px;
 }
-.add-btn-large:hover { opacity: 0.78; }
-.add-btn-large.added { background: #5a9e6f; }
+.add-btn-large:hover { opacity: 1; }
 
 /* SHIRT GRID */
 .shirt-grid {
@@ -483,16 +481,13 @@ nav {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 9px 20px;
-  border: 1px solid rgba(26,38,54,0.3);
-  background: rgba(255,255,255,0.5);
-  color: var(--ink);
-  cursor: pointer;
+  border: 1px solid rgba(26,38,54,0.15);
+  background: rgba(26,38,54,0.08);
+  color: var(--ink-soft);
+  cursor: default;
   font-family: 'Jost', sans-serif;
   border-radius: 2px;
-  transition: all 0.15s;
 }
-.add-btn:hover { background: var(--ink); color: white; border-color: var(--ink); }
-.add-btn.added { background: var(--ink); color: white; border-color: var(--ink); }
 
 /* CART DRAWER */
 .cart-overlay {
@@ -862,7 +857,7 @@ footer {
 
 <nav>
   <div class="nav-logo" onclick="navHome()" style="cursor:pointer;"><em>Cooper's Cool Christian Shirts</em></div>
-  <button class="nav-cart" onclick="openCart()">Cart (<span id="cart-count">0</span>)</button>
+  <div></div>
 </nav>
 
 <div id="shop-view">
@@ -913,7 +908,7 @@ footer {
           <button class="size-btn" onclick="selectDrop2Size('XL',this)">XL</button>
         </div>
 
-        <button class="add-btn-large" id="drop2-add-btn" onclick="addDrop2ToCart()">Add to cart</button>
+        <button class="add-btn-large" id="drop2-add-btn" disabled>Out of stock</button>
       </div>
     </div>
   </div>
@@ -1030,7 +1025,7 @@ function renderProducts() {
         </div>
         <div class="shirt-bottom">
           <div class="shirt-price">$${p.price}</div>
-          <button class="add-btn" id="add-${p.id}" onclick="addToCart(${p.id})">Add to cart</button>
+          <button class="add-btn" disabled>Out of stock</button>
         </div>
       </div>
     </div>
